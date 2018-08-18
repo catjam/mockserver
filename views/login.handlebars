@@ -1,0 +1,134 @@
+<style>
+html,
+body {
+  height: 100%;
+}
+
+body {
+  display: -ms-flexbox;
+  display: -webkit-box;
+  display: flex;
+  -ms-flex-align: center;
+  -ms-flex-pack: center;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  background-color: #f5f5f5;
+}
+
+.form-signin {
+  width: 100%;
+  max-width: 330px;
+  padding: 15px;
+  margin: 0 auto;
+}
+.form-signin .checkbox {
+  font-weight: 400;
+}
+.form-signin .form-control {
+  position: relative;
+  box-sizing: border-box;
+  height: auto;
+  padding: 10px;
+  font-size: 16px;
+}
+.form-signin .form-control:focus {
+  z-index: 2;
+}
+.form-signin input[type="email"] {
+  margin-bottom: -1px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.form-signin input[type="password"] {
+  margin-bottom: 10px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.login h1 {
+  text-align: center;
+}
+
+</style>
+<div class="container login">
+    <h1>Mock服务平台</h1>
+    <form class="form-signin">
+      <input type="hidden" id="token" name="token" value="{{token}}"/>
+
+      <label for="username" class="sr-only">Username</label>
+      <input type="email" id="username" class="form-control" placeholder="Username" required autofocus>
+
+      <label for="password" class="sr-only">Password</label>
+      <input type="password" id="password" class="form-control" placeholder="Password" required>
+
+      <div class="checkbox mb-3">
+        <label>
+          <input type="checkbox" value="remember-me" checked id="remember"> Remember me
+        </label>
+      </div>
+      <button class="btn btn-lg btn-primary btn-block" type="button" id="submit">Sign in</button>
+      <p class="mt-5 mb-3 text-muted">&copy; 2017-2018</p>
+    </form>
+</div>
+<script>
+
+  $(function() {
+    function getQueryString(name) { 
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i"); 
+        var r = window.location.search.substr(1).match(reg); 
+        if (r != null) return unescape(r[2]); 
+        return null; 
+    }
+
+    $(document).keyup(function (event) {
+      if (event.keyCode == 13) {
+        $("#submit").trigger("click");
+      }
+    });
+
+    $('#submit').on('click', function() {
+      var user = $('#username').val();
+      var pass = $('#password').val();
+      var is_remember = $('#remember').is(':checked');
+      var token = $('#token').val();
+
+      $.ajax({
+        type: 'POST',
+        url: '/api/login' ,
+        cache: false,
+        dataType: "json",
+        data: {
+          username: user,
+          password: pass,
+          is_remember: is_remember
+        },
+        headers : {
+          'Access-Control-Allow-Origin':'*',
+          'token': token
+        },
+        success: function(data) {
+           if (data.status != -1) {
+            layer.msg('登陆成功！');
+            $('#username').val('');
+            $('#password').val('');
+            var backurl = getQueryString('backurl');
+            if (backurl) {
+              location.href = backurl;
+            } else {
+              location.href = '/';
+            }
+            
+           } else {
+             layer.msg(data && data.message);
+           }
+        }
+      });
+
+      return false;
+    })
+  });
+</script>

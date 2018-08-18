@@ -1,0 +1,240 @@
+<link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css" />
+<style>
+  .list-group {
+    margin-top: 30px;
+  }
+
+  .operator-item {
+    margin-left: 10px;
+    position: relative;
+    top: 2px;
+    cursor: pointer;
+    color: #fff;
+  }
+   .operator-item:hover {
+    text-decoration: none;
+    color: #fff;
+    opacity: 0.9;
+   }
+
+  .add-user input {
+    margin-bottom: 5px;
+  }
+
+  .list {
+    margin-top: 15px;
+  }
+
+  .list .icon-remove:before {
+    color: red;
+    cursor: pointer;
+  }
+
+  .list .icon-edit:before {
+    color: #007bff;
+    cursor: pointer;
+    position: relative;
+    top: 1px;
+
+  }
+  .search {
+    display: block;
+  }
+
+  .search .label {
+    margin-left: 30px;
+    margin-right: 12px;
+  }
+
+  .select-domain, .select-status  {
+    margin-right: 10px;
+  }
+
+  .icon-remove:before {
+    font-size: 18px;
+    margin-right: 10px;
+    cursor: pointer
+  }
+
+  .icon-copy:before {
+    color: #007bff;
+    cursor: pointer
+  }
+
+</style>
+<div class="container user-list">
+  <h1>mocklist</h1>
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">mocklist</li>
+    </ol>
+  </nav>
+
+  <ul class="list-group">
+    <li class="list-group-item active">operator: 
+      <a class="operator-item" href="/mockedit">
+        <i class="icon-plus"></i>&nbsp;增加
+      </a>
+    </li>
+    <li class="list-group-item">
+      <div class="search">
+        <form class="form-inline my-2 my-lg-0">
+          <span class="label">filter: </span>
+          <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="filter-url">
+          <select class="form-control select-domain" id="filter-project">
+            <option value="-1" selected>全部</option>
+            {{#each project}}
+              <option value="{{index}}">{{name}}</option>
+            {{/each}}
+          </select>
+          <select class="form-control select-status" id="filter-status">
+            <option value="-1">全部</option>
+            <option value="0">废弃</option>
+            <option value="1" selected>有效</option>
+          </select>
+          <button class="btn btn-success" type="button" id="search-btn">Search</button>
+        </form>
+      </div>
+    </li>
+  </ul>
+
+  <ul class="list-group">
+    <li class="list-group-item">
+      <div class="row">
+        <div class="col-sm-2">
+          api
+        </div>
+        <div class="col-sm-4">
+          说明
+        </div>
+        <div class="col-sm">
+          method
+        </div>
+        <div class="col-sm-3">
+          项目
+        </div>
+        <div class="col-sm">
+          状态
+        </div>
+        <div class="col-sm">
+          操作
+        </div>
+      </div>
+    </li>
+  </ul>
+  <ul class="list-group list">
+    <li class="list-group-item">暂无数据</li>
+  </ul>
+</div>
+<script>
+
+  $(function () {
+    var projectMap = {{{ projectStr }}};
+
+    var pmap = {}
+    $.each(projectMap, function(i, n) {
+      pmap[n.index] = n.name;
+    })
+
+    function getList() {
+      var url = $('#filter-url').val();
+      var project = $('#filter-project').val();
+      var status = $('#filter-status').val();
+
+      $.get('/api/getapilist', { url, project, status }, function (data) {
+        var arr = [];
+        $(data.rs.list).each(function (i, n) {
+          arr.push(
+            `
+            <li class="list-group-item">
+              <div class="row">
+                <div class="col-sm-2">
+                  <a href="/mockedit/${n._id}">${n.url}</a>
+                </div>
+                <div class="col-sm-4" title="${n.lasteditor}: ${n.desc}" data-toggle="tooltip">
+                  <div style="overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">${n.desc}</div>
+                </div>
+                <div class="col-sm">`
+                  + (n.method == 1 ? 'post' : 'get' ) + 
+                `</div>
+                <div class="col-sm-3">`
+                  + (pmap[n.project]) + 
+                `</div>
+                <div class="col-sm">`
+                  + (n.status == 1 ? '<span style="color:green">有效</span>' : '<span style="color:red">废弃</span>') + 
+                `</div>
+                <div class="col-sm">
+                  <i class="icon-remove" data-id="${n._id}" data-status="${n.status}"></i>
+                  <i class="icon-copy" data-id="${n._id}"></i>
+                </div>
+              </div>
+            </li>
+            `
+          )
+        });
+
+        var htmlstr;
+        if (arr.length) {
+          htmlstr = arr.join('');
+        } else {
+          htmlstr = '<li class="list-group-item">暂无数据</li>';
+        }
+        $('.list').html(htmlstr);
+
+        $(".list [data-toggle='tooltip']").tooltip();
+      });
+    }
+
+    getList();
+    $('#search-btn').on('click', function () {
+      getList();
+    })
+
+    $('#filter-url').on('input', function() {
+      getList();
+    })
+
+    $('.list').on('click', '.icon-remove', function() {
+      var id = $(this).data('id');
+      if ($(this).data('status') == 0) {
+        layer.msg('废弃状态不能删除');
+        return ;
+      }
+
+      layer.confirm('确认要删除吗？', {
+        btn: [ '确定', '取消' ]//按钮
+      }, function (index) {
+        layer.close(index);
+
+        $.post('/api/disableapi', { id }, function (data) {
+          if (data === -1) {
+            layer.msg('注销失败');
+          } else {
+
+            layer.msg('注销成功');
+            setTimeout(getList, 200);
+          }
+        });
+      });
+    })
+
+    $('.list').on('click', '.icon-copy', function () {
+      var id = $(this).data('id');
+
+      $.post('/api/apicopy', { id }, function (data) {
+        if (data.status === -2) {
+          location.href = '/login?backurl=' + location.href;
+        } else if (data === -1) {
+          layer.msg('复制失败');
+        } else {
+          layer.msg('复制成功');
+          setTimeout(getList, 200);
+        }
+      });
+    })
+
+
+  })
+</script>

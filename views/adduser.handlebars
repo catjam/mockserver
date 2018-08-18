@@ -1,0 +1,158 @@
+<link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css" />
+<style>
+  .list-group {
+    margin-top: 30px;
+  }
+
+  .operator-item {
+    margin-left: 10px;
+    position: relative;
+    top: 2px;
+    cursor: pointer;
+  }
+  .add-user input {
+    margin-bottom: 5px;
+  }
+
+  .list {
+    margin-top: 15px;
+  }
+
+  .list .icon-remove:before {
+    color: red;
+    cursor: pointer;
+  }
+
+  .list .icon-edit:before {
+    color: #007bff;
+    cursor: pointer;
+    position: relative;
+    top: 1px;
+
+  }
+
+</style>
+<div class="container user-list">
+  <h1>用户管理</h1>
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">adduser</li>
+    </ol>
+  </nav>
+
+  <ul class="list-group">
+    <li class="list-group-item active">operator: 
+      <span class="operator-item"
+        data-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
+        <i class="icon-plus"></i>&nbsp;增加
+      </span>
+    </li>
+  </ul>
+
+  <div class="collapse" id="collapseExample">
+    <div class="card card-body add-user">
+      <form class="form-signin">
+        <input type="hidden" id="token" name="token" value="{{token}}"/>
+
+        <label for="username" class="sr-only">Username</label>
+        <input type="email" id="username" class="form-control" placeholder="Username" required autofocus>
+
+        <label for="password" class="sr-only">Password</label>
+        <input type="password" id="password" class="form-control" placeholder="Password" required>
+
+        <button class="btn btn-lg btn-primary btn-block" type="button" id="submit">register</button>
+      </form>
+    </div>
+  </div>
+  
+  <ul class="list-group">
+    <li class="list-group-item">
+      <div class="row">
+        <div class="col-sm">
+          用户名
+        </div>
+        <div class="col-sm">
+          时间
+        </div>
+        <div class="col-sm">
+          角色
+        </div>
+        <div class="col-sm">
+          操作
+        </div>
+      </div>
+    </li>
+  </ul>
+  <ul class="list-group list">
+    <li class="list-group-item">暂无数据</li>
+  </ul>
+</div>
+<script>
+  $(function() {
+    $('#submit').on('click', function () {
+      var user = $('#username').val();
+      var pass = $('#password').val();
+
+      $.post('/api/adduser', { username: user, password: pass, date: new Date(), status: 1, type: 0 }, function (data) {
+        if (data.status == '0') {
+          layer.msg('添加成功');
+          $('.operator-item').click();
+          getuserlist();
+        } else {
+          layer.msg(data && data.message);
+        }
+        $('#username').val('');
+        $('#password').val('');
+      });
+    });
+
+
+    function getuserlist() {
+      $.get('/api/getuserlist', function (data) {
+        if (data && data.rs && data.rs.list && data.rs.list.length) {
+          var arr = [];
+          $.each(data.rs.list, function(i, n) {
+            arr.push(`
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm">
+                    ${n.username}
+                  </div>
+                  <div class="col-sm">
+                    ${n.date.substr(0, 10)}
+                  </div>
+                  <div class="col-sm">
+                    ${n.type !== 0 ? 'admin' : 'default'}
+                  </div>
+                  <div class="col-sm">
+                    <i class="icon-remove" data-id="${n._id}"></i>
+                  </div>
+                </div>
+              </li>`);
+          });
+          $('.list').html(arr.join(''));
+        } else {
+          $('.list').html('<li class="list-group-item">暂无数据</li>');
+        }
+      });
+    }
+    getuserlist();
+
+    $('.list').on('click', 'i.icon-remove', function() {
+      var _id = $(this).data('id');
+      $.post('/api/removeuser', { _id: _id }, function (data) {
+        if (data.status == '0') {
+          layer.msg('删除成功');
+          getuserlist();
+        } else {
+          layer.msg('删除失败');
+        }
+      })
+    });
+
+  });
+
+
+</script>

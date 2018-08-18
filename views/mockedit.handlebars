@@ -1,0 +1,422 @@
+<link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css" />
+<style>
+  .form {
+    display: flex;
+  }
+
+  .card {
+    margin-top: 15px;
+  }
+
+  .param-list {
+    margin-top: 10px;
+  }
+  .param-card {
+    margin-top: 10px;
+  }
+  .param-card h2 {
+    margin-bottom: 20px;
+  }
+  .reponse-card textarea#responsecontent {
+    height: 500px;
+  }
+  .add-btn {
+    margin-top: 15px;
+  }
+
+  .update_param_btn, #rule_btn {
+    margin-right: 5px;
+  }
+
+  .response-params .form-group {
+    margin-bottom: 0;
+  }
+
+  .response-params .form-group:nth-child(odd) {
+    background-color: #007bff;
+    color: #fff;
+  }
+  .response-params .form-group:nth-child(odd) input::-webkit-input-placeholder {
+    color: #ddd;
+  }
+  .response-params .form-group:nth-child(odd) input {
+    color: #fff;
+  }
+
+  .response-params .form-group:nth-child(odd) input:focus {
+    color: #000;
+  }
+</style>
+<div class="container user-list">
+  <h1>mockedit</h1>
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="/mocklist">mocklist</a></li>
+      <li class="breadcrumb-item active" aria-current="page">mockedit</li>
+    </ol>
+  </nav>
+
+  <div class="card">
+    <div class="card-body">
+        <form>
+          <input type="hidden" id="id" value="{{id}}"/>
+          <div class="form-group">
+            <label for="url">url:</label>
+            <div class="input-group mb-2">
+              <div class="input-group-prepend">
+                <div class="input-group-text" id="baseUrl">@</div>
+              </div>
+              <input type="text" class="form-control" id="url" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="desc">desc:</label>
+            <textarea class="form-control" id="desc"></textarea required>
+          </div>
+          <div class="form-group">
+            <label for="method">method:</label>
+            <select class="form-control select-domain" id="method">
+              <option value="-1" selected>all</option>
+              <option value="0">get</option>
+              <option value="1">post</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="project">project:</label>
+            <select class="form-control select-domain" id="project">
+              {{#each project}}
+                <option value="{{index}}" {{selected}}>{{name}}</option>
+              {{/each}}
+            </select>
+          </div>
+          <button id="base_info_btn" type="button" class="btn btn-primary">Submit</button>
+        </form>
+
+        <div class="card">
+        <div class="card-body param-card">
+            <h2>params</h2>
+            <ul class="list-group">
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm">
+                    字段
+                  </div>
+                  <div class="col-sm">
+                    类型
+                  </div>
+                  <div class="col-sm">
+                    必须
+                  </div>
+                  <div class="col-sm-4">
+                    说明
+                  </div>
+                  <div class="col-sm-3">
+                    操作
+                  </div>
+                </div>
+              </li>
+            </ul>
+            <ul class="list-group param-list">
+              <li class="list-group-item" id="no-data">暂无数据</li>
+            </ul>
+
+            <div class="form-group add-btn">
+              <div class="checkbox">
+                <button type="button" class="btn btn-success" id="add_param_btn">add</button>
+              </div>
+            </div>
+
+        </div>
+        </div>
+
+        <div class="card">
+        <div class="card-body param-card reponse-card">
+            <h2>reponse rules</h2>
+            <div class="form-group">
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" id="usemockjs">&nbsp;&nbsp;是否使用mockjs
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="row">
+                <div class="col-sm-6">
+                  <textarea class="form-control" id="responsecontent"></textarea>
+                </div>
+                <div class="col-sm-6 responsedesc response-params"></div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary" id="rule_btn">Submit</button>
+            <button type="button" class="btn btn-success" id="format_btn">格式化</button>
+        </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  $(function () {
+
+    var projectMap = {{{ projectStr }}};
+
+    $('#project').on('change', function() {
+      var index = $(this).val();
+      $(projectMap).each(function(i, n) {
+        if (n.index == index) {
+          $('#baseUrl').text(n.baseHostUrl);
+        }
+      });
+    });
+    $("#project").trigger('change');
+
+    function getParams() {
+      var id = $('#id').val();
+      var url = $('#url').val();
+      var desc = $('#desc').val();
+      var method = $('#method').val();
+      var project = $('#project').val();
+
+      return { id, url, desc, method, project };
+    }
+
+    // 提交接口信息
+    $('#base_info_btn').on('click', function() {
+      $.post('/api/addapi', getParams(), function (data) {
+        if (data.status === 0) {
+          layer.msg('添加或修改成功');
+          setTimeout(function () {
+            location.href = '/mockedit/' + data.rs.id;
+          }, 500)
+        } else if (data.status === -2) {
+          location.href = '/login?backurl=' + encodeURIComponent(location.href);
+        } else {
+          layer.msg(data && data.message);
+        }
+      });
+    })
+
+    // 页面数据初始化
+    var id = $('#id').val();
+    var responsedesc = {};
+    if (id) {
+      $.get('/api/getInfo', { id: id }, function (data) {
+        if (data.status === 0) {
+          var arr = [];
+          $('#url').val(data.rs.url);
+          $('#desc').val(data.rs.desc);
+          $('#method').val(data.rs.method);
+          $('#project').val(data.rs.project);
+          $('#usemockjs').prop('checked', !!data.rs.usemockjs);
+          $('#responsecontent').val(data.rs.responsecontent);
+
+          // 转成对象，方便使用
+          $.each(data.rs.responsedesc, function(i, n) {
+            responsedesc[n.key] = n.desc;
+          })
+
+          $("#project").trigger('change');
+          $('#format_btn').trigger('click');
+
+          if (data.rs.params.length) {
+            $('#no-data').hide();
+            renderParamsList(data.rs.params);
+          } else {
+            $('#no-data').show(); 
+          }
+          
+        } else {
+          layer.msg(data && data.message);
+        }
+      });
+    }
+
+    // 增加规则
+    $('#rule_btn').on('click', function() {
+      var id = $('#id').val();
+
+      if (!id) {
+        layer.msg('请先提交接口');
+        return ;
+      }
+
+      var rdesc = [];
+      $('.response-params input').each(function(i, n) {
+        var key = $(n).attr('id');
+        var value = $(n).val();
+        rdesc.push({ key, desc: value });
+      });
+
+      var usemockjs = $('#usemockjs').is(':checked') ? 1 : 0;
+      var responsecontent = $('#responsecontent').val();
+
+      $.post('/api/addapirule', { id, usemockjs, responsecontent, responsedesc: JSON.stringify(rdesc) }, function (data) {
+        if (data.status === 0) {
+          layer.msg('修改成功');
+        } else {
+          layer.msg(data && data.message);
+        }
+      });
+    });
+
+    // 提交字段
+    $('.param-list').on('click', '.update_param_btn', function (data) {
+        var id = $('#id').val();
+        var paramid = $(this).data('id');
+        var $li = $(this).parents('li');
+        var key = $li.find('.param_key').val();
+        var desc = $li.find('.param_desc').val();
+        $li.find('.param_desc').attr('data-original-title', desc);
+        var type = $li.find('.param_type').val();
+        var isrequire = $li.find('.param_isrequire').val();
+
+        $.post('/api/updateapiparam', { id, key, desc, type, paramid, isrequire }, function (data) {
+          if (data.status === -1) {
+            layer.msg(data && data.message);
+            return;
+          } else {
+            layer.msg('提交字段成功');
+          }
+        })
+    })
+
+    // 删除字段
+    $('.param-list').on('click', '.del_param_btn', function (data) {
+      var id = $('#id').val();
+      var paramid = $(this).data('id');
+      var $li = $(this).parents('li');
+
+      $.post('/api/deleteapiparam', { id, paramid }, function (data) {
+        if (data.status === -1) {
+          layer.msg(data && data.message);
+          return;
+        }
+        $li.remove();
+
+        if ($('.param-list li').length === 1) {
+          $('#no-data').show();
+        }
+      })
+    });
+
+    // 添加字段
+    $('#add_param_btn').on('click', function () {
+      var id = $('#id').val();
+
+      if (!id) {
+        layer.msg('请先提交接口');
+        return;
+      }
+      $.post('/api/addapiparam', { id }, function (data) {
+        if (data.status === -1) {
+          layer.msg(data && data.message);
+          return ;
+        }
+
+        $('#no-data').hide();
+        renderParamsList([{ paramid: data.rs.id, key: '', desc: '' }]);
+      })
+
+    });
+
+    // 渲染列表
+    function renderParamsList(data) {
+      if (!data.length) {
+        return ;
+      }
+
+      $(data).each(function(i, n) {
+        $('.param-list').append(`
+          <li class="list-group-item" id="key-${n.paramid}">
+            <div class="row">
+              <div class="col-sm">
+                <input type="text" class="form-control param_key"placeholder="key" value="${n.key}" required>
+              </div>
+              <div class="col-sm">
+                <select class="form-control param_type">`
+                  + '<option value="0"' + (n.type === 0 ? 'selected' : '' ) + '>Number</option>'
+                  + '<option value="1"' + (n.type === 1 ? 'selected' : '' ) + '>String</option>'
+                  + '<option value="2"' + (n.type === 2 ? 'selected' : '' ) + '>Array</option>'
+                  + '<option value="3"' + (n.type === 3 ? 'selected' : '' ) + '>Object</option>'
+                  + '<option value="4"' + (n.type === 4 ? 'selected' : '' ) + '>Date</option>'
+                + `</select>
+              </div>
+              <div class="col-sm">
+                <select class="form-control param_isrequire">`
+                  + '<option value="0" ' + (n.isrequire === 0 ? 'selected' : '' ) + ' style="color:red">no</option>'
+                  + '<option value="1" ' + (n.isrequire === 1 ? 'selected' : '' ) + ' style="color:green">yes</option>'
+                + `</select>
+              </div>
+              <div class="col-sm-4">
+                <input type="text" class="form-control param_desc" placeholder="description"
+                  data-toggle="tooltip" title="${n.desc}" value="${n.desc}" required>
+              </div>
+              <div class="col-sm-3">
+                <button type="button" class="btn btn-primary update_param_btn" data-id="${n.paramid}">submit</button>
+                <button type="button" class="btn btn-danger del_param_btn" data-id="${n.paramid}">delete</button>
+              </div>
+            </div>
+          </li>`);
+      })
+
+      $(".param-list [data-toggle='tooltip']").tooltip();
+    }
+
+    function getparamforresponse(params, object, namespace) {
+      for(var key in object) {
+        if (typeof object[key] === 'array' || typeof object[key] === 'object') {
+          if (/^\d+$/g.test(key)) {
+            key === '0' && getparamforresponse(params, object[key], (namespace || '') + key + '.');
+          } else {
+            getparamforresponse(params, object[key], (namespace || '') + key + '.');
+          }
+          
+        } else {
+          params.push({
+            key: (namespace || '') + key,
+            desc: responsedesc[(namespace || '') + key] || ''
+          });
+        }
+      }
+    }
+
+
+    function renderparam(object) {
+      var params = [];
+      getparamforresponse(params, object);
+      
+      var content = [];
+      for (var i = 0, len = params.length; i < len; i++) {
+        content.push(`
+          <div class="form-group row">
+            <label for="${params[i].key}" class="col-sm-5 col-form-label">${params[i].key}</label>
+            <div class="col-sm-6">
+              <input class="form-control form-control-plaintext" id="${params[i].key}" placeholder="输入描述" value="${params[i].desc}" data-toggle="tooltip" title="${params[i].desc}"/>
+            </div>
+          </div>
+        `);
+      }
+      content = content.join('');
+
+      $('.responsedesc').html(`
+        <form>
+          ${content}
+        </form>
+      `);
+      $(".responsedesc [data-toggle='tooltip']").tooltip();
+    }
+
+    $("#format_btn").on('click', function () {
+      try {
+        var content = $('#responsecontent').val();
+        renderparam(eval('(' + content + ')'));
+        content = JSON.stringify(eval('(' + content + ')'), null, 4);
+        $('#responsecontent').val(content);
+      } catch(e) {}
+    });
+    $('#format_btn').trigger('click');
+  });
+</script>
